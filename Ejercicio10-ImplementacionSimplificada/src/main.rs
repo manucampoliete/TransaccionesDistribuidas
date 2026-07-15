@@ -15,13 +15,12 @@ const YES_PROBABILITY: f64 = 0.9;
 /* ---------------------------------------------------------------------------------------------- */
 /* - Enums + Structs ---------------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------------------------------- */
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug)]
 enum Vote {
     Yes,
     No,
 }
 
-#[derive(Clone)]
 enum Message {
     Prepare,
     Commit,
@@ -32,16 +31,16 @@ enum Message {
 /* ---------------------------------------------------------------------------------------------- */
 /* - Coordinator -------------------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------------------------------- */
-fn send_to_all(participants: &[Sender<Message>], msg: Message) {
+fn send_to_all(participants: &[Sender<Message>], build_msg: impl Fn() -> Message) {
     for p in participants {
-        p.send(msg.clone()).unwrap();
+        p.send(build_msg()).unwrap();
     }
 }
 
 fn coordinate_transaction(participants: Vec<Sender<Message>>, rx: Receiver<Message>) {
     // Phase 1: Prepare
     println!("[Coordinator]: sending PREPARE to {} participants", participants.len());
-    send_to_all(&participants, Message::Prepare);
+    send_to_all(&participants, || Message::Prepare);
 
     // Wait for votes
     let mut votes = Vec::new();
@@ -53,7 +52,7 @@ fn coordinate_transaction(participants: Vec<Sender<Message>>, rx: Receiver<Messa
             }
             _ => {
                 println!("[Coordinator]: timeout or unexpected message -> ROLLBACK");
-                send_to_all(&participants, Message::Rollback);
+                send_to_all(&participants, || Message::Rollback);
                 return;
             }
         }
@@ -63,10 +62,10 @@ fn coordinate_transaction(participants: Vec<Sender<Message>>, rx: Receiver<Messa
     let all_yes = votes.iter().all(|v| *v == Vote::Yes);
     if all_yes {
         println!("[Coordinator]: all votes YES -> COMMIT");
-        send_to_all(&participants, Message::Commit);
+        send_to_all(&participants, || Message::Commit);
     } else {
         println!("[Coordinator]: at least one NO -> ROLLBACK");
-        send_to_all(&participants, Message::Rollback);
+        send_to_all(&participants, || Message::Rollback);
     }
 }
 
