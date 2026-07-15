@@ -37,10 +37,32 @@ cargo run
 
 ## Ejercicio 11 – Simulación de Fallos
 
-*(Pendiente)*
+Modificación del Ejercicio 10 donde el comportamiento de cada participante es **forzado** (`Behavior::RespondWith` / `Behavior::Delay`) en lugar de aleatorio, para poder reproducir a demanda cada escenario de falla.
+
+| Caso | Qué se fuerza | Qué ocurre |
+|------|----------------|------------|
+| **a) Voto NO** | Un participante responde `Vote::No`, los otros dos `Vote::Yes`. | El coordinador recibe los 3 votos dentro del timeout, detecta que no son unánimes y envía `Rollback` a todos. |
+| **b) Timeout** | Un participante duerme 6s antes de votar (supera el `recv_timeout(5s)` del coordinador). | El coordinador agota el tiempo de espera en la tercera iteración, asume falla del participante lento y envía `Rollback` a todos de inmediato — sin esperar la respuesta tardía. Cuando el participante lento despierta e intenta votar, el envío falla silenciosamente porque el coordinador ya cerró el canal; igual recibe el `Rollback` que ya le habían enviado. |
+| **c) Rollback forzado** | Los 3 participantes votan `YES`, pero se pasa `force_rollback = true`. | Pese a la unanimidad, el coordinador decide abortar la transacción (ej. por una regla de negocio externa al protocolo) y envía `Rollback` a todos. |
+
+### Ejecución
+
+```bash
+cd Ejercicio11-SimulacionDeFallos
+cargo run
+```
 
 ---
 
 ## Ejercicio 12 – Logging
 
-*(Pendiente)*
+Mismo protocolo del Ejercicio 10 (votación aleatoria vía `rand`), agregando un **Write-Ahead Log**: cada participante escribe su intención en un archivo (`wal_participant_<id>.log`) *antes* de ejecutar la acción correspondiente (`Prepared`, `Commit` o `Rollback`).
+
+Este registro previo es indispensable porque es lo único que sobrevive a un crash del proceso: si el participante cae justo después de aplicar la acción pero antes de confirmarlo, el WAL en disco ya refleja qué se pretendía hacer, permitiendo que al reiniciar se pueda determinar el estado correcto en lugar de quedar en un estado ambiguo (Durabilidad y Safety).
+
+### Ejecución
+
+```bash
+cd Ejercicio12-Logging
+cargo run
+```
