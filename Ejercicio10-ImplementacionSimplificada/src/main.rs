@@ -121,7 +121,8 @@ fn main() {
         handles.push(handle);
     }
 
-    drop(tx_to_coord); // el coordinador ya tiene sus clones repartidos
+    // Close original tx (only tx_clone remain in the threads)
+    drop(tx_to_coord);
 
     coordinate_transaction(participant_senders, rx_from_participants);
 
