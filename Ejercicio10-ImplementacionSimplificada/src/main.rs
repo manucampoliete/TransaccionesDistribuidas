@@ -32,7 +32,7 @@ enum Message {
 /* ---------------------------------------------------------------------------------------------- */
 /* - Coordinator -------------------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------------------------------- */
-fn send_to_all(participants: &Vec<Sender<Message>>, msg: Message) {
+fn send_to_all(participants: &[Sender<Message>], msg: Message) {
     for p in participants {
         p.send(msg.clone()).unwrap();
     }
